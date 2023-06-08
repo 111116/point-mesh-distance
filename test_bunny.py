@@ -26,20 +26,24 @@ torch.manual_seed(42)
 points = torch.rand((2000000, 3)).to(device) * \
          torch.tensor((max_x - min_x, max_y - min_y, max_z - min_z)).to(device) + \
          torch.tensor((min_x, min_y, min_z)).to(device)
-
 faces = faces.to(device)
+
+# torch.manual_seed(42)
+# points = torch.rand((30, 3)).to(device)
+# faces = torch.tensor([[[0.1, 0.3, 0.6], [0.4, 0.2, 0.1], [0.5, 0.7, 0.3]]]).to(device)
 
 
 start_time = time.time()
-prim_id = point_mesh(
+dist, prim_id = point_mesh(
     points,
     faces,
 )
 print(prim_id.sum())
 end_time = time.time()
 print(f"Time taken by the function: {end_time - start_time} seconds")
-print(points[0:10])
-print(prim_id[0:30])
+print(points)
+print((dist*dist))
+print(prim_id)
 
 # start_time = time.time()
 # sqrdist, prim_id = pytorch3d._C.point_face_dist_forward(

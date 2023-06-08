@@ -108,15 +108,15 @@ __device__ float point_triangle_distance(float3 point, float3 v0, float3 v1, flo
 }
 
 
-__global__ void point_mesh_kernel(int* out, float3* points, int num_points,
+__global__ void point_mesh_kernel(float* out_dist, int* out_idx, float3* points, int num_points,
                                   float3* mesh, int num_triangles) {
     // check thread ID
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_points) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= num_points) {
         return;
     }
     // get point
-    float3 point = points[idx];
+    float3 point = points[tid];
     // printf("!! %f %f %f\n",  point.x, point.y, point.z);
     float min_distance = FLT_MAX;
     int min_idx = -1;
@@ -134,11 +134,12 @@ __global__ void point_mesh_kernel(int* out, float3* points, int num_points,
         }
     }
     // return result
-    out[idx] = min_idx;
+    out_dist[tid] = min_distance;
+    out_idx[tid] = min_idx;
 }
 
 
-void point_mesh_cuda(torch::Tensor out, torch::Tensor points, torch::Tensor mesh) {
+void point_mesh_cuda(torch::Tensor dist, torch::Tensor out, torch::Tensor points, torch::Tensor mesh) {
     int num_points = points.size(0);
     int num_triangles = mesh.size(0);
 
@@ -151,6 +152,7 @@ void point_mesh_cuda(torch::Tensor out, torch::Tensor points, torch::Tensor mesh
     std::cerr << "sizeof(float3): " << sizeof(float3) << "\n";
     
     point_mesh_kernel<<<numBlocks, blockSize>>>(
+        dist.data_ptr<float>(),
         out.data_ptr<int>(),
         reinterpret_cast<float3*>(points.data_ptr<float>()),
         num_points,

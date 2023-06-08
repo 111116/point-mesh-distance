@@ -4,7 +4,7 @@
 void square_cuda(float *out, float *in, int size);
 
 // CUDA forward declaration
-void point_mesh_cuda(torch::Tensor out, torch::Tensor points, torch::Tensor mesh);
+void point_mesh_cuda(torch::Tensor dist, torch::Tensor idx, torch::Tensor points, torch::Tensor mesh);
 
 
 // C++ interface
@@ -13,7 +13,7 @@ void point_mesh_cuda(torch::Tensor out, torch::Tensor points, torch::Tensor mesh
 // - mesh, a m*3*3 tensor of float representing m triangles in 3D space
 // returns a tensor of size n, representing the index of triangle
 // in the mesh that's closest to each queried point.
-torch::Tensor point_mesh(torch::Tensor points, torch::Tensor mesh) {
+std::tuple<torch::Tensor, torch::Tensor> point_mesh(torch::Tensor points, torch::Tensor mesh) {
     // Check inputs
     TORCH_CHECK(points.is_cuda(), "Points tensor must be a CUDA tensor");
     TORCH_CHECK(mesh.is_cuda(), "Mesh tensor must be a CUDA tensor");
@@ -22,9 +22,10 @@ torch::Tensor point_mesh(torch::Tensor points, torch::Tensor mesh) {
     TORCH_CHECK(points.dtype() == torch::kFloat32, "points must be a float tensor");
     TORCH_CHECK(mesh.dtype() == torch::kFloat32, "mesh must be a float tensor");
     // create output
-    torch::Tensor out = torch::empty({points.size(0)}, points.options().dtype(torch::kInt32));
-    point_mesh_cuda(out, points, mesh);
-    return out;
+    torch::Tensor dist = torch::empty({points.size(0)}, points.options().dtype(torch::kFloat32));
+    torch::Tensor idx = torch::empty({points.size(0)}, points.options().dtype(torch::kInt32));
+    point_mesh_cuda(dist, idx, points, mesh);
+    return std::make_tuple(dist, idx);
 }
 
 
